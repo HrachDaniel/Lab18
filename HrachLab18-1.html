@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Моя перша гра</title>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            background-color: #f0f0f0;
+        }
+        
+        #main-screen, #game-screen {
+            width: 100%;
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+        
+        #game-title {
+            font-size: 36px;
+            margin-bottom: 30px;
+        }
+        
+        .btn {
+            padding: 10px 20px;
+            font-size: 18px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            margin: 10px;
+        }
+        
+        .btn:hover {
+            background-color: #45a049;
+        }
+        
+        #game-board {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 10px;
+            margin: 20px auto;
+            max-width: 600px;
+        }
+        
+        .number {
+            padding: 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: all 0.3s;
+            background-color: #e0e0e0;
+        }
+        
+        .number.selected {
+            background-color: #4CAF50;
+            color: white;
+            transform: scale(1.05);
+        }
+        
+        #timer {
+            font-size: 24px;
+            margin: 20px 0;
+        }
+        
+        .hidden {
+            display: none;
+        }
+        
+        #stats-table {
+            width: 100%;
+            max-width: 400px;
+            margin: 20px auto;
+            border-collapse: collapse;
+        }
+        
+        #stats-table th, #stats-table td {
+            padding: 8px;
+            border: 1px solid #ddd;
+        }
+        
+        #stats-table th {
+            background-color: #4CAF50;
+            color: white;
+        }
+        
+        #stats-table tr:nth-child(even) {
+            background-color: #f2f2f2;
+        }
+        
+        #stats-table tr.highlight {
+            background-color: #ffeb3b;
+            font-weight: bold;
+        }
+        
+        .stats-container {
+            margin-top: 30px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body>
+    <!-- Головний екран -->
+    <div id="main-screen">
+        <h1 id="game-title">Моя перша гра</h1>
+        <button id="start-btn" class="btn">Почати гру</button>
+    </div>
+    
+    <!-- Екран гри -->
+    <div id="game-screen" class="hidden">
+        <div id="timer">Залишилось: <span id="time-left">60</span> сек</div>
+        <div id="game-board"></div>
+        <button id="restart-btn" class="btn">Почати з початку</button>
+        
+        <div class="stats-container">
+            <h3>Статистика ігор</h3>
+            <table id="stats-table">
+                <thead>
+                    <tr>
+                        <th>Назва гри</th>
+                        <th>Час</th>
+                    </tr>
+                </thead>
+                <tbody id="stats-body">
+                    <!-- Статистика буде додаватись сюди -->
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <script>
+        $(document).ready(function() {
+            // Константи гри
+const TOTAL_NUMBERS = 25;
+            const GAME_DURATION = 60; // 60 секунд
+            const FONT_SIZES = [16, 18, 20, 22, 24, 26, 28, 30];
+            
+            // Змінні стану гри
+            let currentNumber = 1;
+            let timer;
+            let timeLeft = GAME_DURATION;
+            let numbers = [];
+            let startTime;
+            let gameResults = [];
+            
+            // Початковий екран
+            $('#start-btn').click(function() {
+                $('#main-screen').addClass('hidden');
+                $('#game-screen').removeClass('hidden');
+                initGame();
+            });
+            
+            // Ініціалізація гри
+            function initGame() {
+                currentNumber = 1;
+                timeLeft = GAME_DURATION;
+                $('#time-left').text(timeLeft);
+                
+                // Очистити таймер, якщо він уже працює
+                if (timer) {
+                    clearInterval(timer);
+                }
+                
+                // Запустити таймер
+                startTime = new Date();
+                timer = setInterval(updateTimer, 1000);
+                
+                // Генерувати числа
+                generateNumbers();
+            }
+            
+            // Оновлення таймера
+            function updateTimer() {
+                timeLeft--;
+                $('#time-left').text(timeLeft);
+                
+                if (timeLeft <= 0) {
+                    clearInterval(timer);
+                    const endTime = new Date();
+                    const timeSpent = (GAME_DURATION - timeLeft) + ' с.';
+                    alert('Час вийшов! Ваш результат: ' + (currentNumber - 1));
+                    addGameResult('Гра ' + (gameResults.length + 1), timeSpent, false);
+                    initGame();
+                }
+            }
+            
+            // Генерування чисел для гри
+            function generateNumbers() {
+                numbers = [];
+                $('#game-board').empty();
+                
+                // Створити масив чисел від 1 до 25
+                for (let i = 1; i <= TOTAL_NUMBERS; i++) {
+                    numbers.push(i);
+                }
+                
+                // Перемішати числа
+                shuffleArray(numbers);
+                
+                // Додати числа на дошку
+                numbers.forEach(num => {
+                    const $number = $('<div>').addClass('number').text(num);
+                    
+                    // Випадковий колір
+                    const randomColor = getRandomColor();
+                    $number.css('color', randomColor);
+                    
+                    // Випадковий розмір шрифту
+                    const randomSize = FONT_SIZES[Math.floor(Math.random() * FONT_SIZES.length)];
+                    $number.css('font-size', randomSize + 'px');
+                    
+                    // Обробник кліку
+                    $number.click(function() {
+                        handleNumberClick(num, $(this));
+                    });
+                    
+                    $('#game-board').append($number);
+                });
+            }
+            
+            // Обробник кліку по числу
+            function handleNumberClick(clickedNum, $element) {
+                if (clickedNum === currentNumber) {
+                    // Правильне число
+                    $element.addClass('selected');
+                    currentNumber++;
+                    
+                    // Перевірка на завершення гри
+                    if (currentNumber > TOTAL_NUMBERS) {
+                        clearInterval(timer);
+                        const endTime = new Date();
+                        const timeSpent = Math.round((endTime - startTime) / 1000) + ' с.';
+setTimeout(() => {
+                            alert('Вітаємо! Ви виграли за ' + timeSpent);
+                            addGameResult('Гра ' + (gameResults.length + 1), timeSpent, true);
+                            initGame();
+                        }, 500);
+                    }
+                } else if (clickedNum === currentNumber - 1) {
+                    // Вже вибране число - ігноруємо
+                    return;
+                } else {
+                    // Неправильне число
+                    alert('Не вірна цифра');
+                }
+            }
+            
+            // Додавання результату гри до статистики
+            function addGameResult(gameName, time, isSuccess) {
+                if (!isSuccess) return;
+                
+                const result = {
+                    name: gameName,
+                    time: time,
+                    seconds: parseInt(time)
+                };
+                
+                gameResults.push(result);
+                updateStatsTable();
+            }
+            
+            // Оновлення таблиці статистики
+            function updateStatsTable() {
+                $('#stats-body').empty();
+                
+                if (gameResults.length === 0) return;
+                
+                // Сортування результатів (найкращий час перший)
+                gameResults.sort((a, b) => a.seconds - b.seconds);
+                
+                // Знаходимо найкращий результат
+                const bestTime = gameResults[0].seconds;
+                
+                // Додаємо результати до таблиці
+                gameResults.forEach((result, index) => {
+                    const isBest = result.seconds === bestTime;
+                    const row = $('<tr>').toggleClass('highlight', isBest);
+                    
+                    $('<td>').text(result.name).appendTo(row);
+                    $('<td>').text(result.time).appendTo(row);
+                    
+                    $('#stats-body').append(row);
+                });
+            }
+            
+            // Кнопка перезапуску
+            $('#restart-btn').click(function() {
+                initGame();
+            });
+            
+            // Допоміжні функції
+            function shuffleArray(array) {
+                for (let i = array.length - 1; i > 0; i--) {
+                    const j = Math.floor(Math.random() * (i + 1));
+                    [array[i], array[j]] = [array[j], array[i]];
+                }
+                return array;
+            }
+            
+            function getRandomColor() {
+                const letters = '0123456789ABCDEF';
+                let color = '#';
+                for (let i = 0; i < 6; i++) {
+                    color += letters[Math.floor(Math.random() * 16)];
+                }
+                return color;
+            }
+        });
+    </script>
+</body>
+</html>
